@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Build and save head canon lore charts for Thomas & Friends or any show.">
+<title>Lore Line Head Canon Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a railway "line plan" — the wizard is a track with 10 stations; the chart is a route board with a timetable-style roster. */
+:root{
+  --bg:#eaeee9; --panel:#f8faf6; --ink:#1c2a25; --muted:#5b6a63; --rule:#c9d2cb;
+  --line:#2f6b55; --line-soft:#d6e6dd; --signal:#c7781a; --signal-soft:#f6e3c6; --danger:#a63a2b;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Literata",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#131a17; --panel:#1b2420; --ink:#e4ebe6; --muted:#98a8a0; --rule:#33413b;
+  --line:#6fbf98; --line-soft:#21362c; --signal:#e7a04a; --signal-soft:#3a2b17; --danger:#e07a6a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131a17; --panel:#1b2420; --ink:#e4ebe6; --muted:#98a8a0; --rule:#33413b;
+  --line:#6fbf98; --line-soft:#21362c; --signal:#e7a04a; --signal-soft:#3a2b17; --danger:#e07a6a; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.05}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button,.btn{font:600 15px/1 var(--body);border:1.5px solid var(--ink);background:transparent;color:var(--ink);
+  padding:11px 16px;border-radius:4px;cursor:pointer}
+button:hover{background:var(--line-soft)}
+button.primary{background:var(--line);border-color:var(--line);color:var(--panel)}
+button.primary:hover{filter:brightness(1.08);background:var(--line)}
+button.ghost{border-color:transparent;padding-inline:8px;text-decoration:underline;text-underline-offset:3px}
+button.danger{border-color:var(--danger);color:var(--danger)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+input,textarea,select{font:16px/1.5 var(--body);color:var(--ink);background:var(--panel);border:1.5px solid var(--rule);border-radius:4px;padding:10px 12px;width:100%}
+textarea{min-height:170px;resize:vertical}
+
+/* masthead */
+.mast{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px solid var(--ink);padding-bottom:14px}
+.mast h1{font-size:clamp(40px,7vw,64px);text-transform:uppercase}
+.mast h1 span{color:var(--line)}
+.mast p{margin:4px 0 0;color:var(--muted);max-width:52ch}
+.store{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* library */
+.lib-head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+.lib-head h2{font-size:30px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.ticket{position:relative;text-align:left;background:var(--panel);border:1.5px solid var(--rule);border-radius:6px;padding:18px 18px 16px;
+  display:flex;flex-direction:column;gap:10px;font-weight:400;line-height:1.4;cursor:pointer;min-width:0}
+.ticket:hover{border-color:var(--line);background:var(--panel)}
+.ticket .stub{display:flex;justify-content:space-between;gap:8px;border-bottom:1.5px dashed var(--rule);padding-bottom:8px}
+.ticket h3{font-size:26px;overflow-wrap:anywhere}
+.ticket p{margin:0;color:var(--muted);font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.swatches{display:flex;gap:4px}
+.swatches i{width:18px;height:18px;border-radius:50%;border:1px solid var(--rule);display:block}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px;background:var(--signal-soft);color:var(--signal)}
+.empty{border:2px dashed var(--rule);border-radius:6px;padding:28px;color:var(--muted)}
+
+/* wizard */
+.track{position:relative;display:grid;grid-template-columns:repeat(11,1fr);gap:0;padding-top:6px}
+.track::before{content:"";position:absolute;left:4%;right:4%;top:19px;height:4px;background:repeating-linear-gradient(90deg,var(--ink) 0 10px,transparent 10px 16px);opacity:.35}
+.stn{position:relative;background:none;border:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;font:500 11px var(--mono);color:var(--muted)}
+.stn:hover{background:none}
+.stn b{width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);background:var(--panel);display:grid;place-items:center;font-size:12px;color:var(--ink)}
+.stn.done b{background:var(--line);border-color:var(--line);color:var(--panel)}
+.stn.cur b{background:var(--signal);border-color:var(--signal);color:var(--panel);transform:scale(1.15)}
+.stn span{display:none}
+@media (min-width:720px){.stn span{display:block;max-width:9ch;text-align:center;line-height:1.2}}
+.qcard{background:var(--panel);border:1.5px solid var(--rule);border-radius:6px;padding:clamp(18px,4vw,32px);display:flex;flex-direction:column;gap:16px}
+.qcard h2{font-size:clamp(30px,5vw,44px)}
+.qcard .prompt{font-size:18px;max-width:65ch;margin:0}
+.tracks{font-size:14px;color:var(--muted);margin:0}
+.tracks b{color:var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;margin-right:6px}
+.nav{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.nav .r{display:flex;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:6px}
+.extra{border-top:1.5px dashed var(--rule);padding-top:16px;display:flex;flex-direction:column;gap:12px}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:999px;background:var(--line-soft);color:var(--line);border:none}
+.palette-ed{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.palette-ed input[type=color]{width:52px;height:44px;padding:3px;cursor:pointer}
+.roster-ed{display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:1.2fr .6fr 2fr auto;gap:8px;align-items:start}
+.rrow textarea{min-height:44px}
+@media (max-width:640px){.rrow{grid-template-columns:1fr 1fr}.rrow textarea{grid-column:1/-1}.rrow button{grid-column:1/-1}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.two{grid-template-columns:1fr}}
+
+/* chart */
+.board{background:var(--panel);border:2px solid var(--ink);border-radius:8px;overflow:hidden}
+.board-hero{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);border-bottom:2px solid var(--ink)}
+@media (max-width:760px){.board-hero{grid-template-columns:1fr}}
+.hero-l{padding:clamp(18px,4vw,32px);display:flex;flex-direction:column;gap:14px;min-width:0}
+.hero-l h2{font-size:clamp(38px,7vw,68px);text-transform:uppercase;overflow-wrap:anywhere}
+.premise{font-size:clamp(18px,2.4vw,22px);font-style:italic;margin:0;max-width:44ch}
+.hero-r{border-left:2px solid var(--ink);padding:clamp(18px,4vw,28px);display:flex;flex-direction:column;gap:14px;background:var(--line-soft);min-width:0}
+@media (max-width:760px){.hero-r{border-left:none;border-top:2px solid var(--ink)}}
+.era{font-family:var(--display);font-size:28px;font-weight:600;line-height:1.1;overflow-wrap:anywhere}
+.band{display:flex;height:14px}
+.band i{flex:1;display:block}
+.bigswatch{display:flex;gap:8px;flex-wrap:wrap}
+.bigswatch div{display:flex;flex-direction:column;gap:4px;align-items:center;font:500 10px var(--mono);color:var(--muted)}
+.bigswatch i{width:40px;height:40px;border-radius:4px;border:1.5px solid var(--ink);display:block}
+.signal{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;padding:18px clamp(18px,4vw,32px);background:var(--signal-soft);border-bottom:2px solid var(--ink)}
+.lamp{width:34px;height:34px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 5px var(--panel),0 0 0 7px var(--ink)}
+.signal p{margin:4px 0 0}
+.route{padding:clamp(18px,4vw,32px);display:flex;flex-direction:column;gap:0}
+.stop{display:grid;grid-template-columns:38px minmax(0,1fr);gap:16px;position:relative;padding-bottom:22px}
+.stop::before{content:"";position:absolute;left:17px;top:30px;bottom:0;width:4px;background:var(--line)}
+.stop:last-child::before{display:none}
+.stop .dot{width:38px;height:38px;border-radius:50%;border:4px solid var(--line);background:var(--panel);display:grid;place-items:center;font:500 12px var(--mono);color:var(--line)}
+.stop h3{font-size:24px;margin-top:4px}
+.stop p{margin:6px 0 0;white-space:pre-wrap;max-width:68ch;overflow-wrap:anywhere}
+.stop .blank{color:var(--muted);font-style:italic}
+.roster{border-top:2px solid var(--ink);padding:clamp(18px,4vw,32px);display:flex;flex-direction:column;gap:12px}
+.roster h3{font-size:28px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+th{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:2px solid var(--ink)}
+td{padding:10px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--line);font-size:18px;white-space:nowrap}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px clamp(18px,4vw,32px);border-top:2px solid var(--ink);font:500 11px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.bar{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.bar .r{display:flex;flex-wrap:wrap;gap:10px}
+.confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--signal-soft);padding:12px 14px;border-radius:4px}
+.exportbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border:1.5px dashed var(--rule);border-radius:6px;padding:10px 12px}
+.exportbar button{padding:9px 13px;font-size:14px}
+label.btn{display:inline-block;font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:4px;font:500 13px var(--mono)}
+@media (prefers-reduced-motion:no-preference){.stn.cur b{transition:transform .2s}.qcard{animation:slide .25s ease}@keyframes slide{from{transform:translateX(10px)}to{transform:none}}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Lore <span>Line</span></h1>
+      <p>Answer ten questions about your alternate universe, then keep the finished chart on file to look back on.</p>
+    </div>
+    <div class="store" id="store">Connecting to your saved charts…</div>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SETS = {
+  thomas: {
+    label: "Thomas & Friends",
+    world: "Sodor",
+    questions: [
+      {title:"The Lore Anchor & Era", short:"Era", prompt:"Which version of Sodor is your starting point: the original Railway Series books, the classic model series, the CGI era, All Engines Go, or a blend? What year or period is the railway frozen in (post-war 1940s, 1960s Modernisation Plan, present day, or timeless)?", tracks:"Baseline canon, era, and the technology that exists."},
+      {title:"The Core Premise Shift", short:"What-If", prompt:"What one big rule of Sodor works differently in your version? For example, engines age and wear out like living things, the railway is privately owned and failing, or Sodor has been cut off from the mainland.", tracks:"Your AU tags and the core what-if statement.", extra:"tags"},
+      {title:"Geography, Scale & Boundaries", short:"Map", prompt:"How big is your Sodor? Which branch lines, towns, quarries, docks, and yards matter most? How does crossing to the mainland over the Vicarstown bridge work, and what lies beyond the island's edges?", tracks:"Key locations, travel routes, and the borders of the world."},
+      {title:"Sentience & Engine Mechanics", short:"Engines", prompt:"Where does an engine's mind and personality live: in the smokebox face, the boiler, the frames, or something else? Can engines feel pain, fear, or exhaustion? What happens to an engine's mind if it is rebuilt, renumbered, or scrapped?", tracks:"Rules of life, injury, repair, and death for engines and other vehicles."},
+      {title:"Authority & the Railway Hierarchy", short:"Authority", prompt:"Who really runs things: Sir Topham Hatt, his family, a Board of Directors, the mainland railway, or the government? Is the Fat Controller a kind guardian, a strict boss, or something darker? Where do the Steam Team, diesels, workmen, and passengers fit in the pecking order?", tracks:"Power structure, rules, and who holds influence."},
+      {title:"The Moral & Emotional Economy", short:"Feelings", prompt:"In your Sodor, what does it actually mean to be a Really Useful Engine? How do feelings show up physically: does steam pressure drop with sadness, do sulking engines break down, does pride lead to real accidents? What happens to engines labelled troublesome or useless?", tracks:"How emotions and behaviour cause real consequences."},
+      {title:"Character Changes & New Origins", short:"Characters", prompt:"Which engines are different in your version, and how? Think changed backstories, new loyalties, shifted friendships, or rivalries (an engine who escaped the scrapyard, a diesel who replaced a steam favourite, an engine who never came to Sodor).", tracks:"Alternate character sheets: name, role, origin, and how they differ from canon.", extra:"roster"},
+      {title:"Aesthetic, Livery & Tone", short:"Look", prompt:"What does your Sodor look and feel like: bright storybook, rain-soaked industrial, gloomy and abandoned, eerie and dreamlike? Are engine liveries, colours, or numbers changed? (Add custom numbers in the character roster on question 7.)", tracks:"Colour palette, mood words, and livery notes.", extra:"palette"},
+      {title:"Lost & Forgotten Canon", short:"Lost canon", prompt:"Which deep cuts come back into the story? Think engines from the books that rarely appeared on screen, characters who were dropped (like Smudger or Derek), scrapped concepts from Thomas and the Magic Railroad such as Lady's backstory, or legends like the Ghost Engine.", tracks:"Returning characters, Easter eggs, and revived storylines."},
+      {title:"The Underlying Tension", short:"Tension", prompt:"What bigger, slow-burning threat hangs over your Sodor? Examples include dieselisation and the scrapping of steam, budget cuts and line closures, mainland takeover, or a split among the engines themselves.", tracks:"The main conflict and the story arc it drives."}
+    ]
+  },
+  general: {
+    label: "Any show (general)",
+    world: "the world",
+    questions: [
+      {title:"The Lore Anchor & Era", short:"Era", prompt:"Which generation, season, or reboot is your baseline, and what year or timeless period is this world frozen in?", tracks:"Baseline canon, era, and technology level."},
+      {title:"The Core Premise Shift", short:"What-If", prompt:"What fundamental rule of the universe is altered in your version?", tracks:"Your AU tags and the core what-if statement.", extra:"tags"},
+      {title:"Geography, Scale & Boundaries", short:"Map", prompt:"How big is the map, how does travel work between zones, and what lies at the edges?", tracks:"Locations, travel routes, and borders."},
+      {title:"Sentience & Physical Mechanics", short:"Existence", prompt:"Where does consciousness live for non-human characters? Can they feel pain, wear out, or die?", tracks:"Rules of existence, anatomy, and mortality."},
+      {title:"Institutional & Authority Dynamics", short:"Authority", prompt:"Who actually runs the world behind the scenes, and how kind or oppressive are they?", tracks:"Power structure and oversight."},
+      {title:"The Moral & Emotional Economy", short:"Feelings", prompt:"How do feelings, hard work, or belief show up physically in the world?", tracks:"How emotions cause real consequences."},
+      {title:"Character Trajectory & Origins", short:"Characters", prompt:"How are the beloved characters changed? New origins, falls from grace, different upbringings?", tracks:"Alternate character sheets.", extra:"roster"},
+      {title:"Aesthetic, Palette & Tone", short:"Look", prompt:"Does the world shift to noir, gritty realism, eerie surrealism, or something else?", tracks:"Colour palette and mood words.", extra:"palette"},
+      {title:"The Discarded & Forgotten", short:"Lost canon", prompt:"Which dropped characters, scrapped concepts, or obscure background figures return?", tracks:"Deep cuts and revived continuity."},
+      {title:"The Underlying Tension", short:"Tension", prompt:"What creeping, mature threat challenges the cozy nature of the original show?", tracks:"The main conflict and story arc."}
+    ]
+  }
+};
+
+const EXAMPLE = {
+  id:"__example", example:true, name:"The Rust Years", set:"thomas",
+  answers:[
+    "Railway Series books as the baseline, with classic model series faces. Frozen in 1963, the year after the Beeching report reached Sodor.",
+    "Engines age like living things. Every boiler has a set number of years in it, and everyone on the island knows roughly how many each engine has left.",
+    "Sodor is smaller and more isolated. The Vicarstown bridge is closed for repairs that never seem to finish, so goods go by ferry from Brendam. The Little Western and the Skarloey Railway are the only lines still busy.",
+    "An engine's mind lives in its boiler. A new boiler means a slow, foggy recovery and gaps in memory. Engines feel cold and strain, and rust aches.",
+    "Sir Topham Hatt answers to a mainland Board who want the island to pay its way. He protects his engines where he can, but his reports are watched.",
+    "Steam pressure really does drop when an engine loses heart. Being Really Useful keeps you off the Board's list of lines to close.",
+    "",
+    "Rain-soaked industrial, soot and slate. Liveries fade, numbers are repainted by hand.",
+    "Smudger returns as a garden-seat legend the younger engines whisper about. The Ghost Engine is seen on the closed Ffarquhar branch.",
+    "Dieselisation. The Board has a shortlist of steam engines to replace by 1965, and no one has been told who is on it."
+  ],
+  tags:["Engines age","1960s cuts","Isolated Sodor","Melancholy"],
+  palette:["#3e4a47","#6d7c74","#a9572e","#d8c9a3"],
+  roster:[
+    {name:"Edward", number:"2", change:"The oldest engine still working. Knows he is near the end of his boiler and is training his replacement in secret."},
+    {name:"Henry", number:"3", change:"Rebuilt twice. Has lost memories of his early years and pretends he hasn't."},
+    {name:"Diesel", number:"D3", change:"Sent by the Board as an inspector, not a shunter. Reports on every late train."}
+  ],
+  updatedAt: 0
+};
+
+const S = { view:"library", charts:[], current:null, step:0, draft:null, mode:"local", ready:false, confirmDelete:false };
+let coll = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200)}
+
+/* ---------- storage ---------- */
+const LS_KEY = "loreLine.charts", DRAFT_KEY = "loreLine.draft";
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS_KEY)||"[]")}catch(e){return []}}
+function lsSave(list){try{localStorage.setItem(LS_KEY,JSON.stringify(list))}catch(e){}}
+function draftSave(d){try{d?localStorage.setItem(DRAFT_KEY,JSON.stringify(d)):localStorage.removeItem(DRAFT_KEY)}catch(e){}}
+function draftLoad(){try{return JSON.parse(localStorage.getItem(DRAFT_KEY)||"null")}catch(e){return null}}
+function setStore(txt){$("#store").textContent=txt}
+let dbCharts=[];
+function mergeCharts(){S.charts=[...dbCharts, ...lsLoad().map(c=>({...c,local:true}))]}
+function useLocal(msg){S.mode="local";coll=null;mergeCharts();S.ready=true;setStore(msg);if(S.view!=="wizard")render()}
+
+async function initStore(){ useLocal("Saved in this browser"); }
+
+/* charts that were saved in the browser while account storage was down get moved to the account */
+async function migrateLocal(){
+  const list=lsLoad(); if(!list.length||S.mode!=="db") return;
+  const left=[];
+  for(const c of list){
+    const {id,local,example,...data}=c;
+    try{ await coll.doc(id).set({...data,kind:"chart"}); }catch(e){ left.push(c); }
+  }
+  lsSave(left); mergeCharts(); if(S.view!=="wizard") render();
+}
+
+async function saveChart(chart){
+  chart.updatedAt=Date.now();
+  const {id, example, local, ...data} = chart;
+  const nid = id || ("c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+  if(S.mode==="db" && coll){
+    try{
+      await coll.doc(nid).set({...data, kind:"chart"});
+      if(local){ lsSave(lsLoad().filter(c=>c.id!==nid)); }
+      draftSave(null);
+      return {...data, id:nid};
+    }catch(e){ /* fall through to browser save so nothing is lost */ }
+  }
+  const list=lsLoad(); const row={...data,id:nid};
+  const i=list.findIndex(c=>c.id===nid);
+  if(i>=0) list[i]=row; else list.push(row);
+  lsSave(list); mergeCharts(); draftSave(null);
+  if(S.mode==="db") toast("Saved in this browser for now; it will move to your account next time");
+  return {...row, local:true};
+}
+async function deleteChart(c){
+  if(c.local){ lsSave(lsLoad().filter(x=>x.id!==c.id)); mergeCharts(); return; }
+  await coll.doc(c.id).delete();
+}
+
+/* ---------- views ---------- */
+function render(){
+  const app=$("#app");
+  if(S.view==="library") app.innerHTML=libraryView();
+  else if(S.view==="wizard") app.innerHTML=wizardView();
+  else app.innerHTML=chartView(S.current);
+  bind();
+}
+
+function ticket(c){
+  const set=SETS[c.set]||SETS.general;
+  const date=c.example?"Example":new Date(c.updatedAt).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+  return `<button class="ticket" data-open="${esc(c.id)}">
+    <div class="stub"><span class="label">${esc(set.label)}</span>${c.example?'<span class="badge">Example</span>':`<span class="label">${esc(date)}</span>`}</div>
+    <h3>${esc(c.name||"Untitled universe")}</h3>
+    <p>${esc(c.answers?.[1]||"No premise yet.")}</p>
+    ${c.palette?.length?`<div class="swatches">${c.palette.map(p=>`<i style="background:${esc(p)}"></i>`).join("")}</div>`:""}
+  </button>`;
+}
+
+function libraryView(){
+  const mine=[...S.charts].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  return `<section style="display:flex;flex-direction:column;gap:20px">
+    <div class="lib-head">
+      <h2>Your head canon charts</h2>
+      <div class="r" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label class="label" for="newset">Question set</label>
+        <select id="newset" style="width:auto">${Object.entries(SETS).map(([k,v])=>`<option value="${k}">${esc(v.label)}</option>`).join("")}</select>
+        <button class="primary" id="newbtn">Start a new chart</button>
+      </div>
+    </div>
+    ${draftLoad()?`<div class="confirm"><span>You have an unsaved chart in progress${draftLoad().name?`: <b>${esc(draftLoad().name)}</b>`:""}.</span>
+      <button class="primary" id="resume">Resume it</button><button id="discard">Discard</button></div>`:""}
+    ${!S.ready?`<div class="empty">Loading your charts…</div>`:
+      mine.length?`<div class="cards">${mine.map(ticket).join("")}</div>`:
+      `<div class="empty">No saved charts yet. Choose a question set and press <b>Start a new chart</b>. Your first chart will appear here.</div>`}
+    <div class="exportbar">
+      <span class="label">Backup</span>
+      <button id="backup" ${S.charts.length?"":"disabled"}>Download backup file</button>
+      <label class="btn" for="restore" style="cursor:pointer">Restore from backup</label>
+      <input type="file" id="restore" accept=".json,application/json" hidden>
+      <span class="label">Charts live in this browser. Use a backup to move them to another device.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span class="label">See how a finished chart looks</span>
+      <div class="cards">${ticket(EXAMPLE)}</div>
+    </div>
+  </section>`;
+}
+
+function blankDraft(set){return {name:"",set,answers:Array(10).fill(""),tags:[],palette:[],roster:[]}}
+
+function wizardView(){
+  const d=S.draft, set=SETS[d.set]||SETS.general, st=S.step;
+  const stations=[{short:"Name"},...set.questions].map((q,i)=>{
+    const done = i===0 ? !!d.name.trim() : !!d.answers[i-1].trim();
+    return `<button class="stn ${i===st?"cur":done?"done":""}" data-goto="${i}" aria-label="${i===0?"Name":"Question "+i}"><b>${i===0?"★":i}</b><span>${esc(q.short)}</span></button>`;
+  }).join("");
+  let body;
+  if(st===0){
+    body=`<span class="label">Before you depart · ${esc(set.label)}</span>
+      <h2>Name this universe</h2>
+      <p class="prompt">Give your head canon a name you'll recognise in your library, like "The Rust Years" or "Sodor After the Bridge Fell". You can change it any time.</p>
+      <div class="field"><label class="label" for="cname">Chart name</label>
+      <input id="cname" value="${esc(d.name)}" placeholder="e.g. The Rust Years" maxlength="80"></div>`;
+  } else {
+    const q=set.questions[st-1];
+    body=`<span class="label">Question ${st} of 10 · ${esc(set.label)}</span>
+      <h2>${esc(q.title)}</h2>
+      <p class="prompt">${esc(q.prompt)}</p>
+      <p class="tracks"><b>Tracks</b>${esc(q.tracks)}</p>
+      <div class="field"><label class="label" for="ans">Your answer</label>
+      <textarea id="ans" placeholder="Write as much or as little as you like.">${esc(d.answers[st-1])}</textarea></div>
+      ${extraEditor(q.extra)}`;
+  }
+  return `<section style="display:flex;flex-direction:column;gap:20px">
+    <div class="bar"><button class="ghost" id="cancel">← Back to library</button><span class="label">${d.id?"Editing saved chart":"New chart"}</span></div>
+    <nav class="track" aria-label="Questions">${stations}</nav>
+    <div class="qcard">${body}
+      <div class="nav">
+        <button id="prev" ${st===0?"disabled style='visibility:hidden'":""}>← Previous</button>
+        <div class="r">
+          ${st<10?`<button id="next" class="primary">Next station →</button>`:""}
+          ${st===10||d.id?`<button id="finish" class="${st===10?"primary":""}">Save &amp; build chart</button>`:""}
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+function extraEditor(kind){
+  const d=S.draft;
+  if(kind==="tags") return `<div class="extra">
+    <label class="label" for="tagin">AU tags (short labels shown on your chart)</label>
+    <div class="two"><input id="tagin" placeholder="e.g. Engines age" maxlength="40"><button id="tagadd" style="justify-self:start">Add tag</button></div>
+    <div class="chiprow">${d.tags.map((t,i)=>`<button class="chip" data-untag="${i}" aria-label="Remove ${esc(t)}">${esc(t)} ×</button>`).join("")||'<span class="label">No tags yet</span>'}</div></div>`;
+  if(kind==="palette") return `<div class="extra">
+    <span class="label">Palette (up to 6 colours; these appear on your chart)</span>
+    <div class="palette-ed">${d.palette.map((p,i)=>`<input type="color" id="pal${i}" data-pal="${i}" value="${esc(p)}" aria-label="Colour ${i+1}">`).join("")}
+      ${d.palette.length<6?`<button id="paladd">Add colour</button>`:""}
+      ${d.palette.length?`<button class="ghost" id="palpop">Remove last</button>`:""}</div></div>`;
+  if(kind==="roster") return `<div class="extra">
+    <span class="label">Character roster (name, engine number, what's different)</span>
+    <div class="roster-ed">${d.roster.map((r,i)=>`<div class="rrow">
+      <input id="rn${i}" data-r="${i}" data-f="name" value="${esc(r.name)}" placeholder="Name" aria-label="Character name">
+      <input id="ru${i}" data-r="${i}" data-f="number" value="${esc(r.number)}" placeholder="No." aria-label="Number">
+      <textarea id="rc${i}" data-r="${i}" data-f="change" placeholder="How they differ from canon" aria-label="Change">${esc(r.change)}</textarea>
+      <button class="ghost" data-rdel="${i}">Remove</button></div>`).join("")}
+    <button id="radd" style="align-self:flex-start">Add character</button></div></div>`;
+  return "";
+}
+
+function chartView(c){
+  const set=SETS[c.set]||SETS.general, A=c.answers||[], q=set.questions;
+  const pal=c.palette?.length?c.palette:[];
+  const stopIdx=[2,3,4,5,8];
+  const stops=stopIdx.map(i=>`<div class="stop"><div class="dot">${i+1}</div><div>
+      <span class="label">${esc(q[i].short)}</span><h3>${esc(q[i].title)}</h3>
+      ${A[i]?.trim()?`<p>${esc(A[i])}</p>`:`<p class="blank">Not written yet.</p>`}</div></div>`).join("");
+  const roster=(c.roster||[]).filter(r=>r.name||r.change);
+  return `<section style="display:flex;flex-direction:column;gap:16px">
+    <div class="bar"><button class="ghost" id="back">← Back to library</button>
+      <div class="r">${c.example?`<button class="primary" id="usex">Start my own chart</button>`:
+        `<button id="edit">Edit answers</button><button class="danger" id="del">Delete</button>`}</div></div>
+    <div class="exportbar" id="exportbar" ${""}>
+      <span class="label">Export this chart</span>
+      <button data-export="png">Image (PNG)</button><button data-export="pdf">PDF</button><button data-export="pptx">PowerPoint</button>
+      <span class="label" id="exportmsg" aria-live="polite"></span>
+    </div>
+    ${S.confirmDelete?`<div class="confirm" role="alert"><span>Delete "${esc(c.name)}" for good? This can't be undone.</span>
+      <button class="danger" id="delyes">Delete chart</button><button id="delno">Keep it</button></div>`:""}
+    <article class="board">
+      ${pal.length?`<div class="band">${pal.map(p=>`<i style="background:${esc(p)}"></i>`).join("")}</div>`:""}
+      <div class="board-hero">
+        <div class="hero-l">
+          <span class="label">${esc(set.label)} · Alternate universe${c.example?" · Example":""}</span>
+          <h2>${esc(c.name||"Untitled universe")}</h2>
+          <span class="label">The what-if</span>
+          <p class="premise">${A[1]?.trim()?esc(A[1]):"No premise written yet."}</p>
+          ${c.tags?.length?`<div class="chiprow">${c.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>`:""}
+        </div>
+        <div class="hero-r">
+          <div><span class="label">Canon baseline &amp; era</span><div class="era">${A[0]?.trim()?esc(A[0]):"Not set"}</div></div>
+          <div><span class="label">Look &amp; tone</span><p style="margin:4px 0 0">${A[7]?.trim()?esc(A[7]):"Not set"}</p></div>
+          ${pal.length?`<div class="bigswatch">${pal.map(p=>`<div><i style="background:${esc(p)}"></i>${esc(p.toUpperCase())}</div>`).join("")}</div>`:""}
+        </div>
+      </div>
+      <div class="signal"><div class="lamp" aria-hidden="true"></div><div>
+        <span class="label">Signal ahead · ${esc(q[9].title)}</span>
+        <p>${A[9]?.trim()?esc(A[9]):"No threat on the line yet."}</p></div></div>
+      <div class="route"><span class="label" style="margin-bottom:14px">The line, station by station</span>${stops}</div>
+      <div class="roster">
+        <span class="label">${esc(q[6].title)}</span>
+        <h3>Character roster</h3>
+        ${A[6]?.trim()?`<p style="margin:0;max-width:68ch;white-space:pre-wrap">${esc(A[6])}</p>`:""}
+        ${roster.length?`<div class="tablewrap"><table><thead><tr><th>No.</th><th>Character</th><th>What's different</th></tr></thead>
+          <tbody>${roster.map(r=>`<tr><td class="num">${esc(r.number||"–")}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.change)}</td></tr>`).join("")}</tbody></table></div>`
+          :(!A[6]?.trim()?`<p class="blank" style="margin:0;color:var(--muted);font-style:italic">No characters added yet.</p>`:"")}
+      </div>
+      <div class="foot"><span>Lore Line · ${esc(set.world)}</span><span>${c.example?"Example chart":"Last updated "+new Date(c.updatedAt).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</span></div>
+    </article>
+  </section>`;
+}
+
+/* ---------- events ---------- */
+function captureDraft(){
+  const d=S.draft; if(!d) return;
+  const n=$("#cname"); if(n) d.name=n.value;
+  const a=$("#ans"); if(a) d.answers[S.step-1]=a.value;
+  document.querySelectorAll("[data-pal]").forEach(el=>d.palette[+el.dataset.pal]=el.value);
+  document.querySelectorAll("[data-r]").forEach(el=>d.roster[+el.dataset.r][el.dataset.f]=el.value);
+  draftSave({...d, step:S.step});
+}
+function go(step){captureDraft();S.step=Math.max(0,Math.min(10,step));render();const f=$("#ans")||$("#cname");f&&f.focus({preventScroll:true});window.scrollTo({top:0})}
+
+function bind(){
+  const on=(sel,fn)=>{const el=$(sel); if(el) el.onclick=fn};
+  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.open; S.current=id==="__example"?EXAMPLE:S.charts.find(c=>c.id===id);
+    S.view="chart"; S.confirmDelete=false; render(); window.scrollTo({top:0});
+  });
+  on("#newbtn",()=>{S.draft=blankDraft($("#newset").value);S.step=0;S.view="wizard";render();$("#cname").focus()});
+  on("#usex",()=>{S.draft=blankDraft("thomas");S.step=0;S.view="wizard";render()});
+  on("#resume",()=>{const d=draftLoad();S.step=d.step||0;delete d.step;S.draft=d;S.view="wizard";render()});
+  on("#discard",()=>{draftSave(null);render()});
+  on("#backup",()=>{saveFile(`lore-line-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:"lore-line",version:1,charts:lsLoad()},null,2));toast("Backup downloaded")});
+  const rs=$("#restore"); if(rs) rs.onchange=async()=>{
+    const f=rs.files[0]; if(!f) return;
+    try{
+      const j=JSON.parse(await f.text()); const inc=Array.isArray(j)?j:j.charts;
+      if(!Array.isArray(inc)) throw 0;
+      const list=lsLoad(); let n=0;
+      for(const c of inc){ if(!c||typeof c!=="object"||!Array.isArray(c.answers)) continue;
+        const row={...c,id:String(c.id||("c"+Date.now().toString(36)+n))}; delete row.local; delete row.example;
+        const i=list.findIndex(x=>x.id===row.id); if(i>=0){ if((row.updatedAt||0)>(list[i].updatedAt||0)) list[i]=row; } else list.push(row); n++; }
+      lsSave(list); mergeCharts(); render(); toast(`Restored ${n} chart${n===1?"":"s"}`);
+    }catch(e){ toast("That file isn't a Lore Line backup."); }
+  };
+  on("#back",()=>{S.view="library";render()});
+  on("#cancel",()=>{captureDraft();if(S.draft?.id)draftSave(null);S.view=S.draft?.id?"chart":"library";S.draft=null;render()});
+  on("#edit",()=>{S.draft=JSON.parse(JSON.stringify(S.current));S.draft.roster??=[];S.draft.tags??=[];S.draft.palette??=[];S.step=1;S.view="wizard";render()});
+  on("#del",()=>{S.confirmDelete=true;render()});
+  on("#delno",()=>{S.confirmDelete=false;render()});
+  on("#delyes",async()=>{try{await deleteChart(S.current);S.confirmDelete=false;S.view="library";S.current=null;render();toast("Chart deleted")}catch(e){toast("Couldn't delete. Try again.")}});
+  on("#prev",()=>go(S.step-1));
+  on("#next",()=>go(S.step+1));
+  document.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>go(+b.dataset.goto));
+  on("#finish",async()=>{
+    captureDraft();
+    if(!S.draft.name.trim()){S.draft.name="Untitled universe"}
+    const btn=$("#finish"); btn.disabled=true; btn.textContent="Saving…";
+    try{const saved=await saveChart(S.draft);S.current=saved;S.draft=null;S.view="chart";render();window.scrollTo({top:0});toast("Chart saved")}
+    catch(e){btn.disabled=false;btn.textContent="Save & build chart";toast("Couldn't save. Check your connection and try again.")}
+  });
+  document.querySelectorAll("#app input, #app textarea").forEach(el=>el.addEventListener("input",()=>{clearTimeout(bind.t);bind.t=setTimeout(captureDraft,400)}));
+  const tagin=$("#tagin");
+  const addTag=()=>{const v=tagin.value.trim();if(v&&!S.draft.tags.includes(v)){captureDraft();S.draft.tags.push(v);render();$("#tagin").focus()}};
+  on("#tagadd",addTag);
+  if(tagin) tagin.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addTag()}};
+  document.querySelectorAll("[data-untag]").forEach(b=>b.onclick=()=>{captureDraft();S.draft.tags.splice(+b.dataset.untag,1);render()});
+  on("#paladd",()=>{captureDraft();const base=["#2f6b55","#c7781a","#3e4a6b","#a63a2b","#d8c9a3","#1c2a25"];S.draft.palette.push(base[S.draft.palette.length%6]);render()});
+  on("#palpop",()=>{captureDraft();S.draft.palette.pop();render()});
+  on("#radd",()=>{captureDraft();S.draft.roster.push({name:"",number:"",change:""});render();const i=S.draft.roster.length-1;$("#rn"+i)?.focus()});
+  document.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{captureDraft();S.draft.roster.splice(+b.dataset.rdel,1);render()});
+}
+
+/* ---------- export ---------- */
+let DL=true;
+function saveFile(name,data){
+  const blob=data instanceof Blob?data:new Blob([data],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+const LIBS={
+  h2c:"https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+  pdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+  pptx:"https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"
+};
+const loaded={};
+function loadLib(k){return loaded[k]??=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=LIBS[k];sc.onload=res;sc.onerror=()=>{delete loaded[k];rej(new Error("load"))};document.head.appendChild(sc)})}
+const fileBase=c=>(c.name||"lore-chart").replace(/[^\w\s-]/g,"").trim().replace(/\s+/g,"-").toLowerCase()||"lore-chart";
+
+async function boardCanvas(){
+  await loadLib("h2c"); await document.fonts?.ready;
+  const el=document.querySelector(".board");
+  const bg=getComputedStyle(document.body).backgroundColor;
+  return html2canvas(el,{scale:2,backgroundColor:bg,useCORS:true,logging:false});
+}
+const toBlob=cv=>new Promise(r=>cv.toBlob(r,"image/png"));
+
+async function makePptx(c){
+  await loadLib("pptx");
+  const set=SETS[c.set]||SETS.general, q=set.questions, A=c.answers||[];
+  const pal=(c.palette||[]).map(h=>h.replace("#",""));
+  const INK="1C2A25", PAPER="F8FAF6", LINE="2F6B55", SIG="C7781A", MUTED="5B6A63";
+  const accent=pal[0]||LINE;
+  const pptx=new PptxGenJS(); pptx.layout="LAYOUT_WIDE"; pptx.title=c.name||"Lore chart";
+  const DISP="Arial Narrow", BODY="Georgia";
+  const fit=t=>{const n=(t||"").length;return n>1100?11:n>800?12:n>550?14:n>300?16:18};
+  const frame=(sl,label)=>{
+    sl.background={color:PAPER};
+    if(pal.length){const w=13.333/pal.length;pal.forEach((h,i)=>sl.addShape(pptx.ShapeType.rect,{x:i*w,y:0,w:w+0.01,h:0.18,fill:{color:h},line:{color:h}}))}
+    sl.addText(label.toUpperCase(),{x:0.6,y:0.4,w:9,h:0.3,fontFace:"Courier New",fontSize:10,color:MUTED,charSpacing:3});
+    sl.addText(`${c.name||"Untitled universe"} · ${set.label}`,{x:6.5,y:7.0,w:6.2,h:0.3,fontFace:"Courier New",fontSize:9,color:MUTED,align:"right"});
+  };
+  // 1. title
+  let sl=pptx.addSlide(); frame(sl,set.label+" · Alternate universe");
+  sl.addText((c.name||"Untitled universe").toUpperCase(),{x:0.6,y:0.9,w:12,h:1.4,fontFace:DISP,bold:true,fontSize:54,color:INK,valign:"top",fit:"shrink"});
+  sl.addText("THE WHAT-IF",{x:0.6,y:2.5,w:7.4,h:0.3,fontFace:"Courier New",fontSize:10,color:MUTED,charSpacing:3});
+  sl.addText(A[1]||"No premise written yet.",{x:0.6,y:2.85,w:7.4,h:3.3,fontFace:BODY,italic:true,fontSize:Math.min(22,fit(A[1])+4),color:INK,valign:"top"});
+  if(c.tags?.length) sl.addText(c.tags.join("   ·   "),{x:0.6,y:6.25,w:7.4,h:0.4,fontFace:"Courier New",fontSize:12,color:LINE});
+  sl.addShape(pptx.ShapeType.rect,{x:8.5,y:2.5,w:4.2,h:4.2,fill:{color:"D6E6DD"},line:{color:INK,width:1.5}});
+  sl.addText([{text:"CANON BASELINE & ERA\n",options:{fontFace:"Courier New",fontSize:10,color:MUTED}},{text:A[0]||"Not set",options:{fontFace:DISP,fontSize:Math.min(20,fit(A[0])+2),bold:true,color:INK}}],{x:8.7,y:2.65,w:3.8,h:3.9,valign:"top"});
+  // 2. look & tension
+  sl=pptx.addSlide(); frame(sl,"Look, tone & the signal ahead");
+  sl.addText(q[7].title,{x:0.6,y:0.8,w:6,h:0.7,fontFace:DISP,bold:true,fontSize:30,color:INK});
+  sl.addText(A[7]||"Not set",{x:0.6,y:1.6,w:5.8,h:3.2,fontFace:BODY,fontSize:fit(A[7]),color:INK,valign:"top"});
+  (c.palette||[]).forEach((h,i)=>{sl.addShape(pptx.ShapeType.rect,{x:0.6+i*0.95,y:5.0,w:0.8,h:0.8,fill:{color:h.replace("#","")},line:{color:INK,width:1}});sl.addText(h.toUpperCase(),{x:0.5+i*0.95,y:5.85,w:1,h:0.3,fontFace:"Courier New",fontSize:8,color:MUTED,align:"center"})});
+  sl.addShape(pptx.ShapeType.rect,{x:6.9,y:0.8,w:5.8,h:5.9,fill:{color:"F6E3C6"},line:{color:INK,width:1.5}});
+  sl.addShape(pptx.ShapeType.ellipse,{x:7.15,y:1.05,w:0.5,h:0.5,fill:{color:SIG},line:{color:INK,width:1.5}});
+  sl.addText("SIGNAL AHEAD",{x:7.8,y:1.1,w:4.5,h:0.4,fontFace:"Courier New",fontSize:10,color:MUTED,charSpacing:3});
+  sl.addText(q[9].title,{x:7.15,y:1.7,w:5.3,h:0.6,fontFace:DISP,bold:true,fontSize:26,color:INK});
+  sl.addText(A[9]||"No threat on the line yet.",{x:7.15,y:2.4,w:5.3,h:4.1,fontFace:BODY,fontSize:fit(A[9]),color:INK,valign:"top"});
+  // 3. stations
+  [2,3,4,5,8].forEach(i=>{
+    const s2=pptx.addSlide(); frame(s2,`Station ${i+1} · ${q[i].short}`);
+    s2.addShape(pptx.ShapeType.ellipse,{x:0.6,y:0.85,w:0.8,h:0.8,fill:{color:PAPER},line:{color:LINE,width:4}});
+    s2.addText(String(i+1),{x:0.6,y:0.85,w:0.8,h:0.8,align:"center",valign:"middle",fontFace:"Courier New",fontSize:16,color:LINE,bold:true});
+    s2.addText(q[i].title,{x:1.65,y:0.85,w:11,h:0.8,fontFace:DISP,bold:true,fontSize:34,color:INK,valign:"middle"});
+    s2.addShape(pptx.ShapeType.rect,{x:0.95,y:1.75,w:0.08,h:5.0,fill:{color:LINE},line:{color:LINE}});
+    s2.addText(A[i]||"Not written yet.",{x:1.65,y:1.85,w:11,h:4.9,fontFace:BODY,fontSize:fit(A[i])+2,color:INK,valign:"top",italic:!A[i]});
+  });
+  // 4. roster
+  const roster=(c.roster||[]).filter(r=>r.name||r.change);
+  sl=pptx.addSlide(); frame(sl,q[6].title);
+  sl.addText("Character roster",{x:0.6,y:0.8,w:12,h:0.7,fontFace:DISP,bold:true,fontSize:34,color:INK});
+  let y=1.6;
+  if(A[6]){sl.addText(A[6],{x:0.6,y:1.6,w:12,h:1.1,fontFace:BODY,fontSize:14,color:INK,valign:"top",fit:"shrink"});y=2.8}
+  if(roster.length){
+    const head=["No.","Character","What's different"].map(t=>({text:t,options:{bold:true,color:PAPER,fill:{color:INK},fontFace:"Courier New",fontSize:11}}));
+    const rows=roster.map(r=>[{text:r.number||"–",options:{color:LINE,fontFace:"Courier New",fontSize:14}},{text:r.name||"",options:{bold:true,fontFace:BODY,fontSize:13}},{text:r.change||"",options:{fontFace:BODY,fontSize:12}}]);
+    sl.addTable([head,...rows],{x:0.6,y,w:12.1,colW:[1.1,2.6,8.4],border:{type:"solid",color:"C9D2CB",pt:0.75},color:INK,autoPage:true,autoPageRepeatHeader:true,newSlideStartY:0.8});
+  } else if(!A[6]) sl.addText("No characters added yet.",{x:0.6,y:1.6,w:12,h:0.5,fontFace:BODY,italic:true,fontSize:16,color:MUTED});
+  return pptx.write({outputType:"blob"});
+}
+
+async function doExport(kind){
+  const c=S.current, msg=$("#exportmsg"); if(!c) return;
+  const btns=document.querySelectorAll("[data-export]"); btns.forEach(b=>b.disabled=true);
+  msg.textContent="Building file…";
+  try{
+    let data, ext;
+    if(kind==="png"){ data=await toBlob(await boardCanvas()); ext="png"; }
+    else if(kind==="pdf"){
+      const cv=await boardCanvas(); await loadLib("pdf");
+      const {jsPDF}=window.jspdf; const w=cv.width/2, h=cv.height/2, m=24;
+      const doc=new jsPDF({orientation:w>h?"landscape":"portrait",unit:"px",format:[w+m*2,h+m*2],hotfixes:["px_scaling"]});
+      doc.setFillColor(...(getComputedStyle(document.body).backgroundColor.match(/\d+/g)||[234,238,233]).slice(0,3).map(Number)); doc.rect(0,0,w+m*2,h+m*2,"F");
+      doc.addImage(cv.toDataURL("image/png"),"PNG",m,m,w,h); data=doc.output("blob"); ext="pdf";
+    } else { data=await makePptx(c); ext="pptx"; }
+    saveFile(`${fileBase(c)}.${ext}`,data);
+    msg.textContent=""; toast(`${ext.toUpperCase()} saved`);
+  }catch(e){
+    const code=e?.code;
+    msg.textContent = code==="declined" ? "" :
+      code==="rate_limited" ? "A save is already waiting for your confirmation." :
+      e?.message==="load" ? "Couldn't load the export tools. Check your connection and try again." :
+      "Couldn't create the file. Try again.";
+  }finally{ btns.forEach(b=>b.disabled=false); }
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-export]");if(b)doExport(b.dataset.export)});
+
+render();
+initStore();
+</script>
+
+</body>
+</html>
